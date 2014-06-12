@@ -498,6 +498,16 @@ static int32_t msm_actuator_move_focus(
 		pr_err("i2c write error:%d\n", rc);
 		return rc;
 	}
+#ifdef CONFIG_PANTECH_CAMERA_ACT_WV560
+	/*rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_poll(
+		&a_ctrl->i2c_client, 0x05,
+		0x10, MSM_CAMERA_I2C_SET_BYTE_MASK);
+
+	if (rc < 0) {
+		pr_err("i2c poll error:%d\n", rc);
+		return rc;
+	}*/
+#endif
 	a_ctrl->i2c_tbl_index = 0;
 	CDBG("Exit\n");
 
@@ -853,7 +863,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	a_ctrl->i2c_client.addr_type = set_info->actuator_params.i2c_addr_type;
 	if (set_info->actuator_params.reg_tbl_size <=
 		MAX_ACTUATOR_REG_TBL_SIZE) {
-		a_ctrl->reg_tbl_size = set_info->actuator_params.reg_tbl_size;
+	a_ctrl->reg_tbl_size = set_info->actuator_params.reg_tbl_size;
 	} else {
 		a_ctrl->reg_tbl_size = 0;
 		pr_err("MAX_ACTUATOR_REG_TBL_SIZE is exceeded.\n");

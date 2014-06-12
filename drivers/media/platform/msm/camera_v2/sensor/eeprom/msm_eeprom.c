@@ -85,8 +85,8 @@ int32_t msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 		break;
 	case CFG_EEPROM_READ_CAL_DATA:
 		if (cdata->cfg.read_data.num_bytes <= e_ctrl->num_bytes) {
-			CDBG("%s E CFG_EEPROM_READ_CAL_DATA\n", __func__);
-			rc = copy_to_user(cdata->cfg.read_data.dbuffer,
+		CDBG("%s E CFG_EEPROM_READ_CAL_DATA\n", __func__);
+		rc = copy_to_user(cdata->cfg.read_data.dbuffer,
 			e_ctrl->memory_data,
 			cdata->cfg.read_data.num_bytes);
 		}
@@ -1295,7 +1295,8 @@ static int32_t msm_eeprom_platform_probe(struct platform_device *pdev)
 		pr_err("failed rc %d\n", rc);
 		goto memdata_free;
 	}
-	rc = read_eeprom_memory(e_ctrl);
+
+ 	rc = read_eeprom_memory(e_ctrl);
 	if (rc < 0) {
 		pr_err("%s read_eeprom_memory failed\n", __func__);
 		goto power_down;
@@ -1307,7 +1308,7 @@ static int32_t msm_eeprom_platform_probe(struct platform_device *pdev)
 		goto power_down;
 	}
 #endif	
-		pr_err("%s line %d\n", __func__, __LINE__);
+ 		pr_err("%s line %d\n", __func__, __LINE__);
 	for (j = 0; j < e_ctrl->num_bytes; j++)
 		CDBG("memory_data[%d] = 0x%X\n", j, e_ctrl->memory_data[j]);
 
