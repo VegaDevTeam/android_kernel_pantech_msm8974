@@ -565,24 +565,6 @@ static DEVICE_ATTR(manufacture_id, 644, msm_fb_manufacture_id_show, NULL);
 #endif
 
 #ifdef CONFIG_F_SKYDISP_AMOLED_READ_DATA
-#if 0
-static ssize_t msm_fb_register_show(struct device *dev,
-					  struct device_attribute *attr, char *buf)
-{
-	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
-	struct mdss_panel_info *pdata = mfd->panel_info;
-	struct mdss_panel_data * ctrl_pdata =NULL;
-
-	ctrl_pdata = container_of(pdata, struct mdss_panel_data,
-				panel_info);
-
-	ctrl_pdata->panel_read(ctrl_pdata, 1);
- 
-
-	return count;
-}
-#endif
 static ssize_t msm_fb_register_store(struct device *dev, struct device_attribute *attr, 
 			const char *buf,size_t count)
 {
@@ -976,8 +958,6 @@ static int mdss_fb_probe(struct platform_device *pdev)
 			mfd->splash_thread = NULL;
 		}
 	}
-
-	INIT_DELAYED_WORK(&mfd->idle_notify_work, __mdss_fb_idle_notify_work);
 
 	INIT_DELAYED_WORK(&mfd->idle_notify_work, __mdss_fb_idle_notify_work);
 
@@ -2779,7 +2759,6 @@ static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		return -EPERM;
 
 	atomic_inc(&mfd->ioctl_ref_cnt);
-
 	
 #ifdef CONFIG_F_SKYDISP_SMARTDIMMING
 	panel_info = mfd->panel_info;

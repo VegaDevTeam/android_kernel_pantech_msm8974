@@ -27,7 +27,6 @@
 #include "mdss_debug.h"
 #include "mdss_dsi.h"
 
-
 #define DEFAULT_BASE_REG_CNT 0x100
 #define GROUP_BYTES 4
 #define ROW_BYTES 16
