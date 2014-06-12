@@ -985,6 +985,11 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	int ret = 0;
 	int sd_in_pipe = 0;
 
+	if (!ctl) {
+		pr_warn("kickoff on fb=%d without a ctl attched\n", mfd->index);
+		return ret;
+	}
+
 	if (ctl->shared_lock)
 		mutex_lock(ctl->shared_lock);
 
@@ -1298,6 +1303,9 @@ static int mdss_mdp_overlay_queue(struct msm_fb_data_type *mfd,
 
 	flags = (pipe->flags & MDP_SECURE_OVERLAY_SESSION);
 	flags |= (pipe->flags & MDP_SECURE_DISPLAY_OVERLAY_SESSION);
+
+	if (!mfd->panel_info->cont_splash_enabled)
+		mdss_iommu_attach(mdata);
 
 	if (!mfd->panel_info->cont_splash_enabled)
 		mdss_iommu_attach(mdata);
@@ -1786,7 +1794,7 @@ static ssize_t mdss_mdp_vsync_show_event(struct device *dev,
 	vsync_ticks = ktime_to_ns(mdp5_data->vsync_time);
 
 	pr_debug("fb%d vsync=%llu", mfd->index, vsync_ticks);
-	ret = scnprintf(buf, PAGE_SIZE, "VSYNC=%llu", vsync_ticks);
+	ret = scnprintf(buf, PAGE_SIZE, "VSYNC=%llu\n", vsync_ticks);
 
 	return ret;
 }
@@ -2912,7 +2920,7 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 		if (IS_ERR_VALUE(rc)) {
 			pr_err("unable to create vsync timeline\n");
 			goto init_fail;
-	}
+		}
 	}
 	mfd->mdp_sync_pt_data.async_wait_fences = true;
 	rc = sysfs_create_link_nowarn(&dev->kobj,

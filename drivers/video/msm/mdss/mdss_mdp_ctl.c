@@ -1911,7 +1911,7 @@ int mdss_mdp_display_wait4comp(struct mdss_mdp_ctl *ctl)
 #ifdef CONFIG_F_QUALCOMM_MOVIE_PLAYER_MDP_ROTATOR_UNDERRUN
         if (ctl->mixer_left && !ctl->mixer_left->rotator_mode)
 #endif
-			mdss_mdp_ctl_perf_commit(ctl->mdata, ctl->perf_changed);
+		mdss_mdp_ctl_perf_commit(ctl->mdata, ctl->perf_changed);
 		ctl->perf_changed = 0;
 	}
 

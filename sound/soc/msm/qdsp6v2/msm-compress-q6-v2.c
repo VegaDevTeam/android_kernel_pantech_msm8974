@@ -236,7 +236,7 @@ static int msm_compr_send_buffer(struct msm_compr_audio *prtd)
 
 	pr_debug("%s: bytes_received = %d copied_total = %d\n",
 		__func__, prtd->bytes_received, prtd->copied_total);
-	if (prtd->first_buffer && prtd->gapless_state.use_dsp_gapless_mode)
+	if (prtd->first_buffer &&  prtd->gapless_state.use_dsp_gapless_mode)
 		q6asm_stream_send_meta_data(prtd->audio_client,
 				prtd->audio_client->stream_id,
 				prtd->gapless_state.initial_samples_drop,
@@ -790,6 +790,7 @@ static int msm_compr_free(struct snd_compr_stream *cstream)
 
 	if ((stream_index < MAX_NUMBER_OF_STREAMS && stream_index >= 0) &&
 	    (prtd->gapless_state.stream_opened[stream_index])) {
+		prtd->gapless_state.stream_opened[stream_index] = 0;
 		spin_unlock_irqrestore(&prtd->lock, flags);
 		pr_debug(" close stream %d", NEXT_STREAM_ID(stream_id));
 		q6asm_stream_cmd(ac, CMD_CLOSE, NEXT_STREAM_ID(stream_id));
@@ -799,6 +800,7 @@ static int msm_compr_free(struct snd_compr_stream *cstream)
 	stream_index = STREAM_ARRAY_INDEX(stream_id);
 	if ((stream_index < MAX_NUMBER_OF_STREAMS && stream_index >= 0) &&
 	    (prtd->gapless_state.stream_opened[stream_index])) {
+		prtd->gapless_state.stream_opened[stream_index] = 0;
 		spin_unlock_irqrestore(&prtd->lock, flags);
 		pr_debug("close stream %d", stream_id);
 		q6asm_stream_cmd(ac, CMD_CLOSE, stream_id);
@@ -2151,6 +2153,7 @@ static struct snd_soc_platform_driver msm_soc_platform = {
 	.pcm_new	= msm_compr_new,
 	.controls       = msm_compr_gapless_controls,
 	.num_controls   = ARRAY_SIZE(msm_compr_gapless_controls),
+
 };
 
 static __devinit int msm_compr_dev_probe(struct platform_device *pdev)

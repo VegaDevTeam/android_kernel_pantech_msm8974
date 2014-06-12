@@ -82,6 +82,7 @@ struct lpm_system_state {
 
 static struct lpm_system_state sys_state;
 static bool suspend_in_progress;
+static int64_t suspend_time;
 
 struct lpm_lookup_table {
 	uint32_t modes;
@@ -212,7 +213,6 @@ static int lpm_set_l2_mode(struct lpm_system_state *system_state,
 
 	switch (sleep_mode) {
 	case MSM_SPM_L2_MODE_POWER_COLLAPSE:
-		/*pr_info("Configuring for L2 power collapse\n");*/
 		msm_pm_set_l2_flush_flag(MSM_SCM_L2_OFF);
 		break;
 	case MSM_SPM_L2_MODE_GDHS:
@@ -781,6 +781,11 @@ static int lpm_suspend_enter(suspend_state_t state)
 
 static int lpm_suspend_prepare(void)
 {
+	struct timespec ts;
+
+	getnstimeofday(&ts);
+	suspend_time = timespec_to_ns(&ts);
+
 	suspend_in_progress = true;
 	msm_mpm_suspend_prepare();
 	return 0;
@@ -788,6 +793,12 @@ static int lpm_suspend_prepare(void)
 
 static void lpm_suspend_wake(void)
 {
+	struct timespec ts;
+
+	getnstimeofday(&ts);
+	suspend_time = timespec_to_ns(&ts) - suspend_time;
+	msm_pm_add_stat(MSM_PM_STAT_SUSPEND, suspend_time);
+
 	msm_mpm_suspend_wake();
 	suspend_in_progress = false;
 }

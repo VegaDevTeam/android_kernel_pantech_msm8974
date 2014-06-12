@@ -178,7 +178,7 @@ static void dwc3_core_soft_reset(struct dwc3 *dwc)
 	reg |= DWC3_GCTL_CORESOFTRESET;
 	dwc3_writel(dwc->regs, DWC3_GCTL, reg);
 
-		dwc3_notify_event(dwc, DWC3_CONTROLLER_RESET_EVENT);
+	dwc3_notify_event(dwc, DWC3_CONTROLLER_RESET_EVENT);
 
 	/* Assert USB3 PHY reset */
 	reg = dwc3_readl(dwc->regs, DWC3_GUSB3PIPECTL(0));
@@ -209,7 +209,7 @@ static void dwc3_core_soft_reset(struct dwc3 *dwc)
 	reg &= ~DWC3_GCTL_CORESOFTRESET;
 	dwc3_writel(dwc->regs, DWC3_GCTL, reg);
 
-		dwc3_notify_event(dwc, DWC3_CONTROLLER_POST_RESET_EVENT);
+	dwc3_notify_event(dwc, DWC3_CONTROLLER_POST_RESET_EVENT);
 }
 
 /**

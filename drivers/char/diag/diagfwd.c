@@ -505,7 +505,7 @@ int diag_process_smd_read_data(struct diag_smd_info *smd_info, void *buf,
 					pantech_diag_init_mask_table();
 			}
 #endif
-		}
+			}
 		}
 	} else {
 		/* The data is raw and needs to be hdlc encoded */
@@ -1245,7 +1245,7 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 				status = diag_send_data(entry, buf, len,
 								data_type);
 				if (status)
-				packet_type = 0;
+					packet_type = 0;
 			} else if (entry.cmd_code == 255
 				  && cmd_code == 75) {
 				if (entry.subsys_id ==
@@ -1257,7 +1257,7 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 					status = diag_send_data(entry, buf,
 								len, data_type);
 					if (status)
-					packet_type = 0;
+						packet_type = 0;
 				}
 			} else if (entry.cmd_code == 255 &&
 				  entry.subsys_id == 255) {
@@ -1268,7 +1268,7 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 					status = diag_send_data(entry, buf, len,
 								 data_type);
 					if (status)
-					packet_type = 0;
+						packet_type = 0;
 				}
 			}
 		}

@@ -93,6 +93,8 @@ void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl)
 		ctrl->ndx = DSI_CTRL_1;
 	}
 
+	ctrl->panel_mode = ctrl->panel_data.panel_info.mipi.mode;
+
 	ctrl_list[ctrl->ndx] = ctrl;	/* keep it */
 
 	if (ctrl->shared_pdata.broadcast_enable)

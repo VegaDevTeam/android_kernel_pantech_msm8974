@@ -1214,42 +1214,30 @@ void mtp_read_work(struct work_struct *work)
 #if defined (CONFIG_F_SKYDISP_EF56_SS) || defined (CONFIG_F_SKYDISP_EF59_SS) || defined (CONFIG_F_SKYDISP_EF60_SS)
 bool first_enable = false;
 #endif
+
+static struct mdss_dsi_ctrl_pdata *get_rctrl_data(struct mdss_panel_data *pdata)
+{
+	if (!pdata || !pdata->next) {
+		pr_err("%s: Invalid panel data\n", __func__);
+		return NULL;
+	}
+
+	return container_of(pdata->next, struct mdss_dsi_ctrl_pdata,
+			panel_data);
+}
+
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-	struct msm_fb_data_type * mfd = mfdmsm_fb_get_mfd();
-	
+
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return;
 	}
-	
-	if(!mfd->panel_power_on)
-	{
-		printk("[%s] panel is off state (%d).....\n",__func__,mfd->panel_power_on);
-		return;
-	}
-	
+
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
-#if defined (CONFIG_F_SKYDISP_EF56_SS) || defined (CONFIG_F_SKYDISP_EF59_SS) || defined (CONFIG_F_SKYDISP_EF60_SS)
-	if(bl_level == 0)
-	{
-		gpio_set_value((ctrl_pdata->bl_en_gpio), 0);	
-		first_enable = false;
-		printk("%s:bl_en_gpio off\n",__func__);
-	}
-	else
-	{     
-	       if(first_enable ==false)
-	       {
-			gpio_set_value((ctrl_pdata->bl_en_gpio), 1);		
-			first_enable = true;
-			printk("%s:bl_en_gpio on\n",__func__);
-	       }
-	}
-#endif
 
 	/*
 	 * Some backlight controllers specify a minimum duty cycle
@@ -1273,6 +1261,16 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		msleep(2);
 #endif
 		mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
+		if (ctrl_pdata->shared_pdata.broadcast_enable &&
+				ctrl_pdata->ndx == DSI_CTRL_0) {
+			struct mdss_dsi_ctrl_pdata *rctrl_pdata = NULL;
+			rctrl_pdata = get_rctrl_data(pdata);
+			if (!rctrl_pdata) {
+				pr_err("%s: Right ctrl data NULL\n", __func__);
+				return;
+			}
+			mdss_dsi_panel_bklt_dcs(rctrl_pdata, bl_level);
+		}
 #if defined (CONFIG_F_SKYDISP_EF56_SS) || defined (CONFIG_F_SKYDISP_EF59_SS) || defined (CONFIG_F_SKYDISP_EF60_SS)
 		msleep(1);
 		mdss_set_tx_power_mode(1 , pdata);
@@ -1345,7 +1343,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 #endif
 		}
 #endif
-	pr_err("%s:-\n", __func__);
+	pr_debug("%s:-\n", __func__);
 	return 0;
 }
 
@@ -1379,7 +1377,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 #ifdef CONFIG_F_SKYDISP_HBM_FOR_AMOLED
 	//pdata->hbm_flag = 0;
 #endif
-	pr_err("%s:-\n", __func__);
+	pr_debug("%s:-\n", __func__);
 	return 0;
 }
 
@@ -1500,9 +1498,8 @@ static int mdss_dsi_parse_dcs_cmds(struct device_node *np,
 	else
 		pcmds->link_state = DSI_LP_MODE;
 
-	pr_err("%s: dcs_cmd=%x len=%d, cmd_cnt=%d link_state=%d\n", __func__,
+	pr_debug("%s: dcs_cmd=%x len=%d, cmd_cnt=%d link_state=%d\n", __func__,
 		pcmds->buf[0], pcmds->blen, pcmds->cmd_cnt, pcmds->link_state);
-
 
 	return 0;
 
