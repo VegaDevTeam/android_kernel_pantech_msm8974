@@ -1182,6 +1182,10 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 #ifdef CONFIG_PANTECH_SND_FLAC //20131223 jhsong : qct patch for 24bit pcm on offload
 			bits_per_sample = ULL_SUPPORTED_BITS_PER_SAMPLE;
 #endif
+		} else if (perf_mode == LOW_LATENCY_PCM_MODE) {
+			if ((open.topology_id == DOLBY_ADM_COPP_TOPOLOGY_ID) ||
+			    (open.topology_id == SRS_TRUMEDIA_TOPOLOGY_ID))
+				open.topology_id = DEFAULT_COPP_TOPOLOGY;
 		}
 		open.dev_num_channel = channel_mode & 0x00FF;
 		open.bit_width = bits_per_sample;
