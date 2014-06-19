@@ -1549,6 +1549,88 @@ int dsi_panel_device_register(struct device_node *pan_node,
 		}
 	}	
 #endif  /* defined (CONFIG_F_SKYDISP_EF56_SS) */
+#elif (defined (CONFIG_F_SKYDISP_EF63_SS) && (CONFIG_BOARD_VER >= CONFIG_WS10))	
+
+/* octa vddi enable */
+	ctrl_pdata->octa_vddi_reg_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+						 "qcom,platform-octa-vddi-reg-gpio", 0);
+	if (!gpio_is_valid(ctrl_pdata->octa_vddi_reg_en_gpio)) {
+		pr_err("%s:%d, 1.8v Ext Regulator gpio not specified\n",
+						__func__, __LINE__);
+	} else {
+		rc = gpio_request(ctrl_pdata->octa_vddi_reg_en_gpio, "octa_vddi_reg_en");
+		if (rc) {
+			pr_err("request 1.8v Ext Regulator gpio failed, rc=%d\n",
+				rc);
+			gpio_free(ctrl_pdata->octa_vddi_reg_en_gpio);
+			return -ENODEV;
+		}
+		rc = gpio_direction_output(ctrl_pdata->octa_vddi_reg_en_gpio, 1);
+		if (rc) {
+			pr_err("set_direction for lcd_vddio_ext_reg gpio failed, rc=%d\n",
+			       rc);
+			gpio_free(ctrl_pdata->octa_vddi_reg_en_gpio);
+			return -ENODEV;
+		}
+	}
+
+/* octa vci  enable */
+	ctrl_pdata->octa_vci_reg_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+						 "qcom,platform-octa-vci-reg-gpio", 0);
+	if (!gpio_is_valid(ctrl_pdata->octa_vci_reg_en_gpio)) {
+		pr_err("%s:%d, 3.0v Ext Regulator switch gpio not specified\n",
+						__func__, __LINE__);
+	} else {
+		rc = gpio_request(ctrl_pdata->octa_vci_reg_en_gpio, "octa_vci_reg_en");
+		if (rc) {
+			pr_err("request 3.0v Ext Regulator gpio failed, rc=%d\n",
+				rc);
+			gpio_free(ctrl_pdata->octa_vci_reg_en_gpio);
+			if (gpio_is_valid(ctrl_pdata->octa_vddi_reg_en_gpio))
+				gpio_free(ctrl_pdata->octa_vddi_reg_en_gpio);			
+			return -ENODEV;
+		}
+		rc = gpio_direction_output(ctrl_pdata->octa_vci_reg_en_gpio, 1);
+		if (rc) {
+			pr_err("set_direction for octa_vci_reg_en_gpio  failed, rc=%d\n",
+			       rc);
+			gpio_free(ctrl_pdata->octa_vci_reg_en_gpio);
+			if (gpio_is_valid(ctrl_pdata->octa_vddi_reg_en_gpio))
+				gpio_free(ctrl_pdata->octa_vddi_reg_en_gpio);			
+			return -ENODEV;
+		}
+	}
+
+/* octa  reset */
+	ctrl_pdata->octa_rst_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+						 "qcom,platform-octa-reset-gpio", 0);
+	if (!gpio_is_valid(ctrl_pdata->octa_rst_gpio)) {
+		pr_err("%s:%d, reset gpio not specified\n",
+						__func__, __LINE__);
+	} else {
+		rc = gpio_request(ctrl_pdata->octa_rst_gpio, "disp_rst_n");
+		if (rc) {
+			pr_err("request reset gpio failed, rc=%d\n",
+				rc);
+			gpio_free(ctrl_pdata->octa_rst_gpio);
+			if (gpio_is_valid(ctrl_pdata->octa_vci_reg_en_gpio))
+				gpio_free(ctrl_pdata->octa_vci_reg_en_gpio);	
+			if (gpio_is_valid(ctrl_pdata->octa_vddi_reg_en_gpio))
+				gpio_free(ctrl_pdata->octa_vddi_reg_en_gpio);						
+			return -ENODEV;
+		}
+		rc = gpio_direction_output(ctrl_pdata->octa_rst_gpio, 1);
+		if (rc) {
+			pr_err("set_direction for lcd rst gpio failed, rc=%d\n",
+			       rc);
+			gpio_free(ctrl_pdata->octa_rst_gpio);
+			if (gpio_is_valid(ctrl_pdata->octa_vci_reg_en_gpio))
+				gpio_free(ctrl_pdata->octa_vci_reg_en_gpio);	
+			if (gpio_is_valid(ctrl_pdata->octa_vddi_reg_en_gpio))
+				gpio_free(ctrl_pdata->octa_vddi_reg_en_gpio);							
+			return -ENODEV;
+		}
+	}		
 
 	if (pinfo->type == MIPI_CMD_PANEL) {
 		ctrl_pdata->disp_te_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,

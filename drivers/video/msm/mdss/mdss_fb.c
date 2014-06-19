@@ -176,7 +176,7 @@ static int mdss_fb_splash_thread(void *data)
 	}
 
 	mfd->bl_updated = true;
-	mdss_fb_set_backlight(mfd, mfd->panel_info->bl_max >> 1);
+	//mdss_fb_set_backlight(mfd, mfd->panel_info->bl_max >> 1);
 
 	ret = mfd->mdp.splash_fnc(mfd, ov_index, MDP_CREATE_SPLASH_OV);
 	if (ret) {
@@ -825,7 +825,7 @@ static void mdss_fb_remove_sysfs(struct msm_fb_data_type *mfd)
 {
 	sysfs_remove_group(&mfd->fbi->dev->kobj, &mdss_fb_attr_group);
 }
-#ifdef  CONFIG_F_SKYDISP_SHUTDOWN_BUGFIX
+
 static void mdss_fb_shutdown(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
@@ -835,7 +835,7 @@ static void mdss_fb_shutdown(struct platform_device *pdev)
 	mdss_fb_release_all(mfd->fbi, true);
 	unlock_fb_info(mfd->fbi);
 }
-#endif
+
 static int mdss_fb_probe(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd = NULL;
@@ -1149,9 +1149,7 @@ static struct platform_driver mdss_fb_driver = {
 	.remove = mdss_fb_remove,
 	.suspend = mdss_fb_suspend,
 	.resume = mdss_fb_resume,
-#ifdef  CONFIG_F_SKYDISP_SHUTDOWN_BUGFIX
 	.shutdown = mdss_fb_shutdown,
-#endif
 	.driver = {
 		.name = "mdss_fb",
 		.of_match_table = mdss_fb_dt_match,
@@ -1179,9 +1177,8 @@ static void mdss_fb_scale_bl(struct msm_fb_data_type *mfd, u32 *bl_lvl)
 		 * bl_scale is the numerator of
 		 * scaling fraction (x/1024)
 		 */
-#ifndef CONFIG_MACH_MSM8974_EF63S
 		temp = (temp * mfd->bl_scale) / 1024;
-#endif
+
 		/*if less than minimum level, use min level*/
 		if (temp < mfd->bl_min_lvl)
 			temp = mfd->bl_min_lvl;
@@ -1201,16 +1198,7 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 	if (((!mfd->panel_power_on && mfd->dcm_state != DCM_ENTER)
 		|| !mfd->bl_updated) && !IS_CALIB_MODE_BL(mfd)) {
 		mfd->unset_bl_level = bkl_lvl;
-#if defined(CONFIG_MACH_MSM8974_EF63S) || defined(CONFIG_MACH_MSM8974_EF63K) || defined(CONFIG_MACH_MSM8974_EF63L)				
-            if(mfd->bl_level_old != temp) {
-	            ;
-	        }
-		    else {
-		        return;
-		    }
-#else
-			return;
-#endif			
+		return;
 	} else {
 		mfd->unset_bl_level = 0;
 	}
