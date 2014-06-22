@@ -27,7 +27,7 @@
 		reg = <0x900 0x100>;
 	};
 
-	qcom,revid@100 {
+	pm8941_revid: qcom,revid@100 {
 		compatible = "qcom,qpnp-revid";
 		reg = <0x100 0x100>;
 	};
@@ -53,7 +53,7 @@
 				"resin-bark", "kpdpwr-resin-bark";
 		qcom,pon-dbc-delay = <15625>;
 		qcom,system-reset;
-		qcom,s3-debounce = <128>;
+		qcom,s3-debounce = <32>;
 
 		qcom,pon_1 {
 			qcom,pon-type = <0>;
@@ -140,10 +140,6 @@
 		qcom,bms-vadc = <&pm8941_vadc>;
 		qcom,bms-iadc = <&pm8941_iadc>;
 		qcom,bms-adc_tm = <&pm8941_adc_tm>;
-
-		qcom,batt-pres-status@1208 {
-			reg = <0x1208 0x1>;
-		};
 
 		qcom,bms-iadc@3800 {
 			reg = <0x3800 0x100>;
@@ -581,6 +577,7 @@
 		qcom,adc-bit-resolution = <15>;
 		qcom,adc-vdd-reference = <1800>;
 		qcom,vadc-poll-eoc;
+		qcom,pmic-revid = <&pm8941_revid>;
 
 		chan@0 {
 			label = "usb_in";
@@ -840,6 +837,7 @@
 		qcom,iadc-vadc = <&pm8941_vadc>;
 		qcom,iadc-poll-eoc;
 		qcom,use-default-rds-trim = <0>;
+		qcom,pmic-revid = <&pm8941_revid>;
 
 		chan@0 {
 			label = "internal_rsense";
@@ -1410,7 +1408,6 @@
 		      <0xb042 0x7e>;
 		reg-names = "qpnp-lpg-channel-base", "qpnp-lpg-lut-base";
 		qcom,channel-id = <4>;
-		qcom,force-pwm-size = <9>;
 	};
 
 	pwm@b600 {
@@ -1419,7 +1416,6 @@
 		      <0xb042 0x7e>;
 		reg-names = "qpnp-lpg-channel-base", "qpnp-lpg-lut-base";
 		qcom,channel-id = <5>;
-		qcom,force-pwm-size = <9>;
 	};
 
 	pwm@b700 {
@@ -1428,7 +1424,6 @@
 		      <0xb042 0x7e>;
 		reg-names = "qpnp-lpg-channel-base", "qpnp-lpg-lut-base";
 		qcom,channel-id = <6>;
-		qcom,force-pwm-size = <9>;
 	};
 
 	pwm@b800 {
