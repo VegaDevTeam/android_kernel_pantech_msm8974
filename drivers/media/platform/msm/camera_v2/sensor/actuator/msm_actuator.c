@@ -23,7 +23,7 @@
 DEFINE_MSM_MUTEX(msm_actuator_mutex);
 
 #define F_PANTECH_CAMERA_TUNING
-#ifdef F_PANTECH_CAMERA_TUNING
+#ifdef F_PANTECH_CAMERA_TUNING	//kai, 0709
 static bool is_initialized = FALSE;
 #ifdef CONFIG_PANTECH_CAMERA_ACT_WV560
 static int init_lens_pos = 0; // 20131128, wjh
@@ -53,10 +53,6 @@ static struct msm_actuator *actuators[] = {
 	&msm_hvcm_actuator_table,
 #endif
 };
-
-#ifdef CONFIG_PANTECH_CAMERA_ADD_OIS
-static int32_t ois_init_mode = -1;
-#endif
 
 static int32_t msm_actuator_piezo_set_default_focus(
 	struct msm_actuator_ctrl_t *a_ctrl,
@@ -439,6 +435,23 @@ static int32_t msm_actuator_move_focus(
 	if (dest_step_pos == a_ctrl->curr_step_pos)
 		return rc;
 
+	if ((sign_dir > MSM_ACTUATOR_MOVE_SIGNED_NEAR) ||
+		(sign_dir < MSM_ACTUATOR_MOVE_SIGNED_FAR)) {
+		pr_err("%s:%d Invalid sign_dir = %d\n",
+		__func__, __LINE__, sign_dir);
+		return -EFAULT;
+	}
+	if ((dir > MOVE_FAR) || (dir < MOVE_NEAR)) {
+		pr_err("%s:%d Invalid direction = %d\n",
+		__func__, __LINE__, dir);
+		return -EFAULT;
+	}
+	if (dest_step_pos > a_ctrl->total_steps) {
+		pr_err("Step pos greater than total steps = %d\n",
+		dest_step_pos);
+		return -EFAULT;
+	}
+	curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
 	a_ctrl->i2c_tbl_index = 0;
 	CDBG("curr_step_pos =%d dest_step_pos =%d curr_lens_pos=%d\n",
 		a_ctrl->curr_step_pos, dest_step_pos, curr_lens_pos);
@@ -447,17 +460,6 @@ static int32_t msm_actuator_move_focus(
 		step_boundary =
 			a_ctrl->region_params[a_ctrl->curr_region_index].
 			step_bound[dir];
-#ifdef CONFIG_PANTECH_CAMERA_RUMBA_SA // 2014_04_15
-		target_step_pos = dest_step_pos;
-		target_lens_pos =
-			a_ctrl->step_position_table[target_step_pos];
-		a_ctrl->func_tbl->actuator_write_focus(a_ctrl,
-				curr_lens_pos,
-				&ringing_params_kernel,
-				sign_dir,
-				target_lens_pos);
-		curr_lens_pos = target_lens_pos;
-#else
 		if ((dest_step_pos * sign_dir) <=
 			(step_boundary * sign_dir)) {
 
@@ -484,7 +486,6 @@ static int32_t msm_actuator_move_focus(
 
 			a_ctrl->curr_region_index += sign_dir;
 		}
-#endif    
 		a_ctrl->curr_step_pos = target_step_pos;
 	}
 
@@ -531,6 +532,12 @@ static int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 	kfree(a_ctrl->step_position_table);
 	a_ctrl->step_position_table = NULL;
 
+	if (set_info->af_tuning_params.total_steps
+		>  MAX_ACTUATOR_AF_TOTAL_STEPS) {
+		pr_err("%s: Max actuator totalsteps exceeded = %d\n",
+		__func__, set_info->af_tuning_params.total_steps);
+		return -EFAULT;
+	}
 	/* Fill step position table */
 	a_ctrl->step_position_table =
 		kmalloc(sizeof(uint16_t) *
@@ -641,109 +648,6 @@ static int32_t msm_actuator_hvcm_init_step_table(struct msm_actuator_ctrl_t *a_c
 }
 #endif
 
-#ifdef CONFIG_PANTECH_CAMERA//F_PANTECH_CAMERA_ADD_RESET_FOCUS
-static int32_t msm_actuator_vcm_sw_landing(
-                struct msm_actuator_ctrl_t *a_ctrl)
-{
-	int32_t rc = 0;
-
-	struct damping_params_t ringing_params_kernel;
-	int8_t sign_dir = -1;//move_params->sign_dir;
-	uint16_t step_boundary = 0;
-	uint16_t target_step_pos = 0;
-	uint16_t target_lens_pos = 0;
-	int16_t dest_step_pos = 10;//0;//move_params->dest_step_pos;
-	uint16_t curr_lens_pos = 0;
-	int dir = 1;//infinity;//move_params->dir;
-//	int32_t num_steps = move_params->num_steps;
-	struct msm_camera_i2c_reg_setting reg_setting;
-
-	pr_err("Enter\n");
-    
-    curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
-//    move_params->curr_lens_pos = curr_lens_pos;
-
-//    if (copy_from_user(&ringing_params_kernel,
-//        &(move_params->ringing_params[a_ctrl->curr_region_index]),
-//        sizeof(struct damping_params_t))) {
-//        pr_err("copy_from_user failed\n");
-//        return -EFAULT;
-//    }
-
-
-//    CDBG("called, dir %d, num_steps %d\n", dir, num_steps);
-
-    ringing_params_kernel.damping_delay = 7000;
-    ringing_params_kernel.damping_step = 1023;
-    ringing_params_kernel.hw_params = 0;
-
-
-    if (dest_step_pos >= a_ctrl->curr_step_pos)
-        return rc;
-
-    a_ctrl->i2c_tbl_index = 0;
-    CDBG("curr_step_pos =%d dest_step_pos =%d curr_lens_pos=%d\n",
-        a_ctrl->curr_step_pos, dest_step_pos, curr_lens_pos);
-
-    while (a_ctrl->curr_step_pos != dest_step_pos) {
-        step_boundary =
-            a_ctrl->region_params[a_ctrl->curr_region_index].step_bound[dir];
-        if ((dest_step_pos * sign_dir) <=
-            (step_boundary * sign_dir)) {
-
-            target_step_pos = dest_step_pos;
-            target_lens_pos =
-                a_ctrl->step_position_table[target_step_pos];
-            a_ctrl->func_tbl->actuator_write_focus(a_ctrl,
-                    curr_lens_pos,
-                    &ringing_params_kernel,
-                    sign_dir,
-                    target_lens_pos);
-            curr_lens_pos = target_lens_pos;
-
-        } else {
-            target_step_pos = step_boundary;
-            target_lens_pos =
-                a_ctrl->step_position_table[target_step_pos];
-            a_ctrl->func_tbl->actuator_write_focus(a_ctrl,
-                    curr_lens_pos,
-                    &ringing_params_kernel,
-                    sign_dir,
-                    target_lens_pos);
-            curr_lens_pos = target_lens_pos;
-
-            a_ctrl->curr_region_index += sign_dir;
-        }
-        a_ctrl->curr_step_pos = target_step_pos;
-    }
-
-//    move_params->curr_lens_pos = curr_lens_pos;
-    reg_setting.reg_setting = a_ctrl->i2c_reg_tbl;
-    reg_setting.data_type = a_ctrl->i2c_data_type;
-    reg_setting.size = a_ctrl->i2c_tbl_index;
-    rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write_table_w_microdelay(
-        &a_ctrl->i2c_client, &reg_setting);
-    if (rc < 0) {
-        pr_err("i2c write error:%d\n", rc);
-        return rc;
-    }
-#ifdef CONFIG_PANTECH_CAMERA_ACT_WV560
-    /*rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_poll(
-        &a_ctrl->i2c_client, 0x05,
-        0x10, MSM_CAMERA_I2C_SET_BYTE_MASK);
-
-    if (rc < 0) {
-        pr_err("i2c poll error:%d\n", rc);
-        return rc;
-    }*/
-#endif
-    a_ctrl->i2c_tbl_index = 0;
-
-	pr_err("Exit\n");
-	return rc;
-}
-#endif
-
 static int32_t msm_actuator_set_default_focus(
 	struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_move_params_t *move_params)
@@ -833,12 +737,19 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 		pr_err("Actuator function table not found\n");
 		return rc;
 	}
-
-	a_ctrl->region_size = set_info->af_tuning_params.region_size;
-	if (a_ctrl->region_size > MAX_ACTUATOR_REGION) {
+	if (set_info->af_tuning_params.total_steps
+		>  MAX_ACTUATOR_AF_TOTAL_STEPS) {
+		pr_err("%s: Max actuator totalsteps exceeded = %d\n",
+		__func__, set_info->af_tuning_params.total_steps);
+		return -EFAULT;
+	}
+	if (set_info->af_tuning_params.region_size
+		> MAX_ACTUATOR_REGION) {
 		pr_err("MAX_ACTUATOR_REGION is exceeded.\n");
 		return -EFAULT;
 	}
+
+	a_ctrl->region_size = set_info->af_tuning_params.region_size;
 	a_ctrl->pwd_step = set_info->af_tuning_params.pwd_step;
 	a_ctrl->total_steps = set_info->af_tuning_params.total_steps;
 
@@ -888,7 +799,9 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 		return -EFAULT;
 	}
 
-	if (set_info->actuator_params.init_setting_size) {
+	if (set_info->actuator_params.init_setting_size &&
+		set_info->actuator_params.init_setting_size
+		<= MAX_ACTUATOR_REG_TBL_SIZE) {
 		if (a_ctrl->func_tbl->actuator_init_focus) {
 			init_settings = kmalloc(sizeof(struct reg_settings_t) *
 				(set_info->actuator_params.init_setting_size),
@@ -926,23 +839,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 			actuator_init_step_table(a_ctrl, set_info);
 
 #ifdef CONFIG_PANTECH_CAMERA_ADD_OIS
-    {
-        struct pantech_ois_ctrl_t * ois_ctrl = NULL;
-        pantech_OIS_init(a_ctrl);
-        if(ois_init_mode != -1)
-        {
-            pantech_get_oisdev(&ois_ctrl);
-            if(ois_ctrl) {
-                if(ois_ctrl->func_tbl->ois_set_mode)
-                {
-                    rc = ois_ctrl->func_tbl->ois_set_mode(a_ctrl, ois_init_mode);
-                    if (rc < 0)
-                        pr_err("ois_set_mode failed %d\n", rc);
-                }
-            }
-        }
-            
-    }
+    pantech_OIS_init(a_ctrl);
 #endif
 
 #ifdef F_PANTECH_CAMERA_TUNING
@@ -1003,7 +900,6 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
         
 #ifdef CONFIG_PANTECH_CAMERA_ADD_OIS
 	case CFG_SET_OIS_MODE:
-              ois_init_mode = cdata->cfg.ois_mode;
 		pantech_get_oisdev(&ois_ctrl);
 		if(ois_ctrl) {
                 if(ois_ctrl->func_tbl->ois_set_mode)
@@ -1036,15 +932,6 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
                 }
 		}
 		break;
-#endif
-#ifdef CONFIG_PANTECH_CAMERA//F_PANTECH_CAMERA_ADD_RESET_FOCUS
-    case CFG_SET_ACTUATOR_SW_LANDING:
-        if (a_ctrl && a_ctrl->func_tbl && a_ctrl->func_tbl->actuator_sw_landing) {
-          rc = a_ctrl->func_tbl->actuator_sw_landing(a_ctrl);
-          if (rc < 0)
-              pr_err("actuator_sw_landing failed %d\n", rc);
-        }
-        break;
 #endif
 
 	default:
@@ -1110,12 +997,9 @@ static int msm_actuator_open(struct v4l2_subdev *sd,
 		if (rc < 0)
 			pr_err("cci_init failed\n");
 	}
-#ifdef F_PANTECH_CAMERA_TUNING
+#ifdef F_PANTECH_CAMERA_TUNING	//kai, 0709
 	is_initialized = FALSE;
 #endif	/* F_PANTECH_CAMERA_TUNING */
-#ifdef CONFIG_PANTECH_CAMERA_ADD_OIS
-	ois_init_mode = -1;
-#endif
 
 	CDBG("Exit\n");
 	return rc;
@@ -1307,6 +1191,7 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 		&pdev->id);
 	CDBG("cell-index %d, rc %d\n", pdev->id, rc);
 	if (rc < 0) {
+		kfree(msm_actuator_t);
 		pr_err("failed rc %d\n", rc);
 		return rc;
 	}
@@ -1315,6 +1200,7 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 		&msm_actuator_t->cci_master);
 	CDBG("qcom,cci-master %d, rc %d\n", msm_actuator_t->cci_master, rc);
 	if (rc < 0) {
+		kfree(msm_actuator_t);
 		pr_err("failed rc %d\n", rc);
 		return rc;
 	}
@@ -1331,6 +1217,7 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 	msm_actuator_t->i2c_client.cci_client = kzalloc(sizeof(
 		struct msm_camera_cci_client), GFP_KERNEL);
 	if (!msm_actuator_t->i2c_client.cci_client) {
+		kfree(msm_actuator_t);
 		pr_err("failed no memory\n");
 		return -ENOMEM;
 	}
@@ -1409,9 +1296,6 @@ static struct msm_actuator msm_vcm_actuator_table = {
 		.actuator_init_focus = msm_actuator_init_focus,
 		.actuator_parse_i2c_params = msm_actuator_parse_i2c_params,
 		.actuator_set_position = msm_actuator_set_position,
-#ifdef CONFIG_PANTECH_CAMERA//F_PANTECH_CAMERA_ADD_RESET_FOCUS	
-        .actuator_sw_landing = msm_actuator_vcm_sw_landing,//NULL,
-#endif		
 	},
 };
 

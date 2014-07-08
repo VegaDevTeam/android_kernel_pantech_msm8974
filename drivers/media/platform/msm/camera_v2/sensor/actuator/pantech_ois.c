@@ -66,8 +66,6 @@ static int32_t pantech_OIS_get_info(
     if(rdata != RUMBA_OISSTS_RUN)
         return rc;
 
-    mdelay(1);
-
     rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_read(
        &a_ctrl->i2c_client,
        RUMBA_GRX_ADDR,
@@ -76,18 +74,6 @@ static int32_t pantech_OIS_get_info(
         goto ois_get_info_end;    
     copy_from_le(ois_info->cal_gyro_out_x, rdata);
 
-    mdelay(1);
-    
-    rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_read(
-       &a_ctrl->i2c_client,
-       RUMBA_HAX_ADDR,
-       &rdata, MSM_CAMERA_I2C_WORD_DATA);
-    if(rc < 0)
-        goto ois_get_info_end;    
-    copy_from_le(ois_info->hall_out_x, rdata);
-
-    mdelay(1);
-    
     rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_read(
        &a_ctrl->i2c_client,
        RUMBA_GRY_ADDR,
@@ -96,8 +82,14 @@ static int32_t pantech_OIS_get_info(
         goto ois_get_info_end;    
     copy_from_le(ois_info->cal_gyro_out_y, rdata);
 
-    mdelay(1);
-    
+    rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_read(
+       &a_ctrl->i2c_client,
+       RUMBA_HAX_ADDR,
+       &rdata, MSM_CAMERA_I2C_WORD_DATA);
+    if(rc < 0)
+        goto ois_get_info_end;    
+    copy_from_le(ois_info->hall_out_x, rdata);
+
     rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_read(
        &a_ctrl->i2c_client,
        RUMBA_HAY_ADDR,
@@ -106,12 +98,9 @@ static int32_t pantech_OIS_get_info(
         goto ois_get_info_end;    
     copy_from_le(ois_info->hall_out_y, rdata);
 
-    mdelay(1);
-
-/*
         OIS_CDBG("pantech_OIS_get_info - grx=%x, gry=%x, hax=%x, hay=%x++++++++++++++\n", 
             ois_info->cal_gyro_out_x, ois_info->cal_gyro_out_y, ois_info->hall_out_x, ois_info->hall_out_y);
-    */
+    
 ois_get_info_end:
     if(rc < 0)
         OIS_CERR("OIS get info read fail:%d\n", rc);
@@ -158,6 +147,68 @@ ois_stop_end:
     return rc;
 }
 
+static int32_t pantech_OIS_set_mode(
+	struct msm_actuator_ctrl_t *a_ctrl, uint16_t mode)
+{
+    int32_t rc = 0;
+    
+    rc = pantech_OIS_stop(a_ctrl);
+    if(rc < 0)
+        goto ois_set_mode_end;
+    
+    switch(mode)
+    {
+    case 0:
+//        pantech_OIS_stop(a_ctrl);
+        break;
+    case 1:
+    case 2:
+        OIS_CDBG("pantech_OIS_mode set - %d++++++++++++++\n", mode);
+
+        rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+            &a_ctrl->i2c_client,
+            RUMBA_OISMODE_ADDR,
+            mode-1, MSM_CAMERA_I2C_BYTE_DATA);
+        if(rc < 0)
+            break;
+
+        OIS_CDBG("pantech_OIS_start ++++++++++++++\n");
+
+        rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+            &a_ctrl->i2c_client,
+            RUMBA_OISCTRL_ADDR,
+            0x01, MSM_CAMERA_I2C_BYTE_DATA);
+
+#if 0 // test
+{
+    int i = 0;    
+    struct pantech_ois_get_info_t info;
+
+        rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+            &a_ctrl->i2c_client,
+            RUMBA_FWINFO_CTRL_ADDR,
+            0x01, MSM_CAMERA_I2C_BYTE_DATA);
+
+    for(i = 0; i < 10; i++)
+    {
+        mdelay(100);
+        rc = pantech_OIS_get_info(a_ctrl, &info);
+    }
+}
+#endif
+
+        break;
+    default:
+        break;        
+    }
+    
+ois_set_mode_end:
+    if (rc < 0)
+        OIS_CERR("pantech_OIS_set_mode fail:%d\n", mode);
+
+    return rc;
+}
+
 static int32_t pantech_OIS_start(
 	struct msm_actuator_ctrl_t *a_ctrl)
 {
@@ -170,54 +221,6 @@ static int32_t pantech_OIS_start(
         
     if (rc < 0)
         OIS_CERR("OIS start fail:%d\n", rc);
-
-    return rc;
-}
-
-static int32_t pantech_OIS_set_mode(
-	struct msm_actuator_ctrl_t *a_ctrl, uint16_t mode)
-{
-    int32_t rc = 0;
-
-    rc = pantech_OIS_stop(a_ctrl);
-    if(rc < 0)
-        goto ois_set_mode_end;
-    
-    switch(mode)
-    {
-    case 0:
-        OIS_CDBG("pantech_OIS_mode set - centering mode\n");
-
-        rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
-            &a_ctrl->i2c_client,
-            RUMBA_OISMODE_ADDR,
-            5, MSM_CAMERA_I2C_BYTE_DATA);
-        if(rc < 0)
-            break;
-        break;
-    case 1:
-    case 2:
-        OIS_CDBG("pantech_OIS_mode set - %d\n", mode);
-
-        rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
-            &a_ctrl->i2c_client,
-            RUMBA_OISMODE_ADDR,
-            mode-1, MSM_CAMERA_I2C_BYTE_DATA);
-        if(rc < 0)
-            break;
-
-        break;
-    default:
-        break;        
-    }
-
-        OIS_CDBG("pantech_OIS_start\n");
-		
-        rc = pantech_OIS_start(a_ctrl);
-    
-ois_set_mode_end:
-    if (rc < 0)
-        OIS_CERR("pantech_OIS_set_mode fail:%d\n", mode);
 
     return rc;
 }
