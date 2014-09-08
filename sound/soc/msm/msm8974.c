@@ -46,6 +46,7 @@
 #define BTSCO_RATE_16KHZ 16000
 
 static int slim0_rx_bit_format = SNDRV_PCM_FORMAT_S16_LE;
+static int slim0_tx_bit_format = SNDRV_PCM_FORMAT_S16_LE;
 static int hdmi_rx_bit_format = SNDRV_PCM_FORMAT_S16_LE;
 
 #define SAMPLING_RATE_48KHZ 48000
@@ -1344,7 +1345,7 @@ static int msm_slim_0_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 /* 2014-03-26 LS3@SND Recording failure after FLAC 24bit pause due to below patch of R2147A.3 */
 #if !defined(CONFIG_PANTECH_SND)
 	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
-				   slim0_rx_bit_format);
+				   slim0_tx_bit_format);
 #endif
 
 	rate->min = rate->max = 48000;

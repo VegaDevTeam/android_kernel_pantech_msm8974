@@ -746,7 +746,7 @@ static int dwc3_otg_set_power(struct usb_phy *phy, unsigned mA)
 			dotg->charger->chg_type == DWC3_PROPRIETARY_CHARGER)
 		power_supply_type = POWER_SUPPLY_TYPE_USB_DCP;
 	else
-		power_supply_type = POWER_SUPPLY_TYPE_BATTERY;
+		power_supply_type = POWER_SUPPLY_TYPE_UNKNOWN;
 
 #if defined(CONFIG_PANTECH_PMIC_CHARGER_BQ2419X)
 	/*
